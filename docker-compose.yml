@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_NAME: student_db
+      DB_USER: root
+      DB_PASS: student_password
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: student_db
+      MYSQL_ROOT_PASSWORD: student_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - ./demo_data.sql:/docker-entrypoint-initdb.d/2-data.sql
+
+volumes:
+  mysql_data:

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Student Management System</h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('add')">Add Student</button>
+            <button class="tab-btn" onclick="showTab('view')">View Students</button>
+        </div>
+        
+        <div id="addTab" class="tab-content active">
+            <div id="messageBox" class="message-box"></div>
+            <form id="studentForm" onsubmit="submitForm(event)">
+                <div class="form-group">
+                    <label for="name">Student Name:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number:</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="address">Address:</label>
+                    <textarea id="address" name="address" required></textarea>
+                </div>
+                <button type="submit">Add Student</button>
+            </form>
+        </div>
+
+        <div id="viewTab" class="tab-content">
+            <div id="studentList" class="student-list">
+                <!-- Student records will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Show/hide tabs
+    function showTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById(tabName + 'Tab').classList.add('active');
+        document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
+        
+        if (tabName === 'view') {
+            loadStudents();
+        }
+    }
+
+    // Display message
+    function showMessage(message, isError = false) {
+        const messageBox = document.getElementById('messageBox');
+        messageBox.textContent = message;
+        messageBox.className = `message-box ${isError ? 'error' : 'success'}`;
+        messageBox.style.display = 'block';
+        setTimeout(() => {
+            messageBox.style.display = 'none';
+        }, 5000);
+    }
+
+    // Submit form
+    async function submitForm(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch('save_student.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                showMessage(result.message);
+                form.reset();
+                loadStudents(); // Refresh student list
+            } else {
+                showMessage(result.error, true);
+            }
+        } catch (error) {
+            showMessage('Failed to save student data. Please try again.', true);
+        }
+    }
+
+    // Load students
+    async function loadStudents() {
+        try {
+            const response = await fetch('get_students.php');
+            const result = await response.json();
+
+            if (result.success) {
+                const studentList = document.getElementById('studentList');
+                studentList.innerHTML = result.data.map(student => `
+                    <div class="student-card">
+                        <h3>${student.name}</h3>
+                        <p><strong>Email:</strong> ${student.email}</p>
+                        <p><strong>Phone:</strong> ${student.phone}</p>
+                        <p><strong>Address:</strong> ${student.address}</p>
+                        <p class="date">Added: ${new Date(student.created_at).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('studentList').innerHTML = 
+                    '<p class="error-message">Failed to load students: ' + result.error + '</p>';
+            }
+        } catch (error) {
+            document.getElementById('studentList').innerHTML = 
+                '<p class="error-message">Failed to load students. Please try again later.</p>';
+        }
+    }
+
+    // Load students on page load if view tab is active
+    if (document.getElementById('viewTab').classList.contains('active')) {
+        loadStudents();
+    }
+    </script>
+</body>
+</html>
